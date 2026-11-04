@@ -1,0 +1,48 @@
+{
+  "name": "K3d Kubernetes Learning Environment",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
+
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {
+      "version": "latest",
+      "moby": true
+    },
+    "ghcr.io/devcontainers/features/kubectl-helm-minikube:1": {
+      "version": "latest",
+      "helm": "latest",
+      "minikube": "none"
+    }
+  },
+
+  "postCreateCommand": "bash .devcontainer/scripts/install.sh && echo '✅ postCreateCommand done'",
+  "postStartCommand": "bash .devcontainer/scripts/start-cluster.sh && echo '✅ postStartCommand done'",
+  "postAttachCommand": "k3d kubeconfig merge k8s-lab --kubeconfig-switch-context 2>/dev/null || true && echo '✅ kubeconfig ready'",
+
+  "forwardPorts": [8080, 8081, 8443, 9090, 3000],
+  "portsAttributes": {
+    "8080": { "label": "App / Ingress HTTP", "onAutoForward": "notify" },
+    "8081": { "label": "App Port 2", "onAutoForward": "silent" },
+    "8443": { "label": "App / Ingress HTTPS", "onAutoForward": "silent" },
+    "9090": { "label": "Prometheus", "onAutoForward": "silent" },
+    "3000": { "label": "Grafana / Dashboard", "onAutoForward": "silent" }
+  },
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-kubernetes-tools.vscode-kubernetes-tools",
+        "ms-azuretools.vscode-docker",
+        "redhat.vscode-yaml"
+      ],
+      "settings": {
+        "vs-kubernetes": {
+          "vs-kubernetes.kubectl-path": "/usr/local/bin/kubectl"
+        }
+      }
+    }
+  },
+
+  "remoteEnv": {
+    "KUBECONFIG": "/home/vscode/.kube/config"
+  }
+}

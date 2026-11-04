@@ -1,0 +1,38 @@
+name: Smoke Test
+
+on:
+  push:
+    branches: ["**"]
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install k3d
+        run: curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | bash
+
+      - name: Create cluster
+        run: k3d cluster create ci --wait
+
+      - name: Apply CRD
+        run: kubectl apply -f resourcedefinition.yaml
+
+      - name: Wait for CRD to be established
+        run: kubectl wait --for=condition=Established crd/dummysites.samuel.jinadu --timeout=30s
+
+      - name: Apply DummySite
+        run: kubectl apply -f dummysite.yaml
+
+      - name: DummySite exists
+        run: kubectl get ds sample
+
+      - name: Cleanup
+        if: always()
+        run: k3d cluster delete ci

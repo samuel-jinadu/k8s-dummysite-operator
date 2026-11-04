@@ -1,0 +1,6 @@
+apiVersion: samuel.jinadu/v1
+kind: DummySite
+metadata:
+  name: sample
+spec:
+  website_url: https://www.example.com
