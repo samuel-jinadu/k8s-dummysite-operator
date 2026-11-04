@@ -1,0 +1,8 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: dummysite-controller-role
+rules:
+  - apiGroups: ["samuel.jinadu"]
+    resources: ["dummysites"]
+    verbs: ["get", "list", "watch"]

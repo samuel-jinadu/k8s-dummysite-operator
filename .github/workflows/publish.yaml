@@ -1,0 +1,32 @@
+name: Publish image to GHCR
+
+on:
+  push:
+    branches: [main]        # restrict — `**` breaks tag sanitization on slash branches
+    tags: ["v*"]
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: controller/go.mod
+          cache: true
+
+      - name: Setup Ko
+        uses: ko-build/setup-ko@v0.8
+        with:
+          version: v0.19.1
+
+      - name: Build and push controller
+        working-directory: controller
+        run: ko build . --bare --sbom=none --tags=${{ github.sha }},${{ github.ref_name }}
+        env:
+          KO_DOCKER_REPO: ghcr.io/samuel-jinadu/dummysite-controller
