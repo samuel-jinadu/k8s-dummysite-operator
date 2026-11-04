@@ -25,7 +25,7 @@ else
   echo "▶ Creating new cluster '${CLUSTER_NAME}'..."
   k3d cluster create ${CLUSTER_NAME} \
     --servers 1 \
-    --agents  \
+    --agents 1 \
     --port "8080:80@loadbalancer" \
     --port "8443:443@loadbalancer" \
     --wait
