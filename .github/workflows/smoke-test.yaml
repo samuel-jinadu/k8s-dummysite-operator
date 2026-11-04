@@ -31,7 +31,7 @@ jobs:
         run: kubectl apply -f dummysite.yaml
 
       - name: DummySite exists
-        run: kubectl get ds sample
+        run: kubectl get dsite sample
 
       - name: Cleanup
         if: always()
