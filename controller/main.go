@@ -194,7 +194,26 @@ func onAdd(ctx context.Context, c *clients, u *unstructured.Unstructured) {
 }
 
 func fetchHTML(ctx context.Context, url string) (string, error) {
-	fetchCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	var lastErr error
+	const attempts = 4
+	for i := 1; i <= attempts; i++ {
+		body, err := fetchOnce(ctx, url)
+		if err == nil {
+			return body, nil
+		}
+		lastErr = err
+		log.Printf("[ctrl] fetch %s attempt %d/%d failed: %v", url, i, attempts, err)
+		select {
+		case <-ctx.Done():
+			return "", ctx.Err()
+		case <-time.After(time.Duration(i) * time.Second):
+		}
+	}
+	return "", lastErr
+}
+
+func fetchOnce(ctx context.Context, url string) (string, error) {
+	fetchCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
 	req, err := http.NewRequestWithContext(fetchCtx, http.MethodGet, url, nil)
@@ -213,8 +232,6 @@ func fetchHTML(ctx context.Context, url string) (string, error) {
 		return "", fmt.Errorf("HTTP %d", resp.StatusCode)
 	}
 
-	// ConfigMaps cap at ~1 MiB. Truncate rather than fail — example.com is tiny,
-	// Wikipedia is not, and the exercise explicitly allows a partial copy.
 	body, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 	if err != nil {
 		return "", err

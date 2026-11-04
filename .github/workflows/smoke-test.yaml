@@ -26,6 +26,9 @@ jobs:
       - name: Create cluster
         run: k3d cluster create ci --wait
 
+      - name: Wait for CoreDNS
+        run: kubectl -n kube-system rollout status deploy/coredns --timeout=90s
+
       - name: Apply CRD
         run: kubectl apply -f resourcedefinition.yaml
 
@@ -60,9 +63,30 @@ jobs:
         
       - name: Resources created for sample DummySite
         run: |
-          kubectl get configmap dummysite-sample
-          kubectl get pod dummysite-sample
-          kubectl wait --for=condition=Ready pod/dummysite-sample --timeout=90s
+          echo "Polling for dummysite-sample ConfigMap and Pod..."
+          for i in $(seq 1 60); do
+            if kubectl get configmap dummysite-sample >/dev/null 2>&1 && \
+               kubectl get pod dummysite-sample >/dev/null 2>&1; then
+              echo "Both resources appeared after ${i} attempts (~$((i*2))s)"
+              kubectl get configmap dummysite-sample
+              kubectl get pod dummysite-sample
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "=== TIMEOUT: resources never appeared after 120s ==="
+          echo "--- controller logs ---"
+          kubectl logs deploy/dummysite-controller --tail=200 2>&1 || true
+          echo "--- events ---"
+          kubectl get events --all-namespaces --sort-by=.lastTimestamp 2>&1 || true
+          echo "--- configmaps ---"
+          kubectl get configmaps 2>&1 || true
+          echo "--- pods ---"
+          kubectl get pods 2>&1 || true
+          exit 1
+
+      - name: Wait for sample pod Ready
+        run: kubectl wait --for=condition=Ready pod/dummysite-sample --timeout=90s
 
       - name: Serve sample DummySite and verify content
         run: |
